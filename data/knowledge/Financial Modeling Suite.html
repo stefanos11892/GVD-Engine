@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastercard (MA) Financial Intelligence Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+        }
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .slider-track {
+            background: #334155;
+            height: 4px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <!-- Header -->
+    <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
+                Financial Forecaster: Mastercard (MA)
+            </h1>
+            <p class="text-text-secondary mt-1 text-sm">
+                Base Data: FY 2024 10-K | Currency: USD | Source: SEC Filings & Market Data
+            </p>
+        </div>
+        <div class="flex gap-3">
+            <span class="px-3 py-1 rounded-full bg-blue-900/50 text-blue-400 text-xs font-mono border border-blue-800">Ticker: MA</span>
+            <span class="px-3 py-1 rounded-full bg-green-900/50 text-green-400 text-xs font-mono border border-green-800">Status: Active</span>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Controls Sidebar -->
+        <div class="lg:col-span-3 space-y-6">
+            <div class="glass-panel p-5">
+                <h3 class="text-lg font-semibold mb-4 text-blue-300">Scenario Inputs</h3>
+                
+                <div class="mb-6">
+                    <label class="block text-xs text-text-secondary uppercase tracking-wider mb-2">Scenario Selection</label>
+                    <div class="flex bg-slate-800 rounded-lg p-1">
+                        <button onclick="setScenario('bear')" id="btn-bear" class="flex-1 py-1 text-sm rounded transition-colors text-slate-400 hover:text-white">Bear</button>
+                        <button onclick="setScenario('base')" id="btn-base" class="flex-1 py-1 text-sm rounded transition-colors bg-blue-600 text-white shadow-lg">Base</button>
+                        <button onclick="setScenario('bull')" id="btn-bull" class="flex-1 py-1 text-sm rounded transition-colors text-slate-400 hover:text-white">Bull</button>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <!-- Revenue Growth -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-slate-300">Revenue Growth (CAGR)</label>
+                            <span id="val-growth" class="text-sm font-mono text-blue-400">12.0%</span>
+                        </div>
+                        <input type="range" id="input-growth" min="-5" max="25" step="0.5" value="12" 
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                               oninput="updateModel()">
+                    </div>
+
+                    <!-- Net Margin -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-slate-300">Target Net Margin</label>
+                            <span id="val-margin" class="text-sm font-mono text-blue-400">46.0%</span>
+                        </div>
+                        <input type="range" id="input-margin" min="30" max="60" step="0.5" value="46" 
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                               oninput="updateModel()">
+                    </div>
+
+                    <!-- Exit PE -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-slate-300">Target P/E Ratio</label>
+                            <span id="val-pe" class="text-sm font-mono text-blue-400">32.0x</span>
+                        </div>
+                        <input type="range" id="input-pe" min="15" max="50" step="1" value="32" 
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                               oninput="updateModel()">
+                    </div>
+
+                    <!-- Volatility -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-slate-300">Annual Volatility (σ)</label>
+                            <span id="val-vol" class="text-sm font-mono text-purple-400">22.0%</span>
+                        </div>
+                        <input type="range" id="input-vol" min="10" max="60" step="1" value="22" 
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                               oninput="updateModel()">
+                        <p class="text-xs text-slate-500 mt-1">Impacts Monte Carlo Only</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Stats Card -->
+            <div class="glass-panel p-5">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase mb-3">Baseline Metrics (2024 Actuals)</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between border-b border-slate-700 pb-2">
+                        <span class="text-sm text-slate-300">Revenue</span>
+                        <span class="text-sm font-mono text-white">$28.20B</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700 pb-2">
+                        <span class="text-sm text-slate-300">Net Income</span>
+                        <span class="text-sm font-mono text-white">$12.90B</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700 pb-2">
+                        <span class="text-sm text-slate-300">EPS (Diluted)</span>
+                        <span class="text-sm font-mono text-white">$13.89</span>
+                    </div>
+                    <div class="flex justify-between pb-1">
+                        <span class="text-sm text-slate-300">Current Price</span>
+                        <span class="text-sm font-mono text-green-400">$550.53</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts & Tables Area -->
+        <div class="lg:col-span-9 space-y-6">
+            
+            <!-- Valuation Chart -->
+            <div class="glass-panel p-5 relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-white">Projected Price Trajectory (5-Year)</h3>
+                    <div class="text-xs text-slate-400">Linear Growth vs. Monte Carlo Range</div>
+                </div>
+                <div class="h-80 w-full">
+                    <canvas id="valuationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="glass-panel p-5 overflow-hidden">
+                <h3 class="text-lg font-semibold text-white mb-4">Pro Forma Income Statement & Valuation</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-400 uppercase bg-slate-800/50">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">Year</th>
+                                <th class="px-4 py-3">Revenue ($B)</th>
+                                <th class="px-4 py-3">Growth %</th>
+                                <th class="px-4 py-3">Net Income ($B)</th>
+                                <th class="px-4 py-3">EPS ($)</th>
+                                <th class="px-4 py-3">Implied Stock Price</th>
+                                <th class="px-4 py-3 text-right rounded-r-lg">Implied P/E</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectionTable" class="text-slate-200">
+                            <!-- JS will populate -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Monte Carlo Analysis -->
+             <div class="glass-panel p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-white">Monte Carlo Risk Simulation (500 Iterations)</h3>
+                    <div class="text-right">
+                         <span class="text-xs text-slate-400 block">Risk Free Rate: 4.04%</span>
+                    </div>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="monteCarloChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-xs text-slate-400">10th Percentile (Downside)</div>
+                        <div id="mc-low" class="text-red-400 font-mono font-bold text-lg">--</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-xs text-slate-400">Median Outcome</div>
+                        <div id="mc-med" class="text-blue-400 font-mono font-bold text-lg">--</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded">
+                        <div class="text-xs text-slate-400">90th Percentile (Upside)</div>
+                        <div id="mc-high" class="text-green-400 font-mono font-bold text-lg">--</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Initial Data Setup (Mastercard) ---
+        // Based on 2024 10-K Actuals and Late 2025 Market Data
+        const BASE_DATA = {
+            revenue: 28.2,     // $B (2024 Actual)
+            netIncome: 12.9,   // $B (2024 Actual)
+            eps: 13.89,        // $ (2024 Actual)
+            currentPrice: 550.53,
+            shares: 28.2 / 13.89 * 1000, // Approximation or use known float ~928M
+            riskFree: 0.0404,  // 4.04%
+            years: 5
+        };
+
+        // Scenarios
+        const SCENARIOS = {
+            base: { growth: 12.0, margin: 46.0, pe: 32, vol: 22 },
+            bull: { growth: 16.5, margin: 50.0, pe: 38, vol: 28 },
+            bear: { growth: 6.0, margin: 40.0, pe: 22, vol: 35 }
+        };
+
+        // State
+        let currentScenario = 'base';
+        let chartInstanceValuation = null;
+        let chartInstanceMC = null;
+
+        // --- 2. Core Modeling Logic ---
+        function calculateProjections(inputs) {
+            let projections = [];
+            let currentRev = BASE_DATA.revenue;
+            
+            // Re-calculate implied share count based on 2024 base to keep math consistent
+            // Net Income = Revenue * Margin. EPS = Net Income / Shares.
+            // 2024 Margin was ~45.7% (12.9/28.2). 
+            // We project forward from 2024 Actuals.
+            // Year 0 = 2024. Year 1 = 2025 Forecast.
+            
+            let shareCount = 0.928; // Billions of shares (~928M)
+
+            for (let i = 1; i <= BASE_DATA.years; i++) {
+                // Compound Revenue
+                currentRev = currentRev * (1 + (inputs.growth / 100));
+                
+                // Calculate Net Income based on Target Margin
+                // We linearly interpolate margin from Base (45.7%) to Target over 5 years
+                // to make it realistic, or just use flat target? 
+                // Let's use flat target for simplicity and "What-if" analysis
+                let netIncome = currentRev * (inputs.margin / 100);
+                
+                // Assumed Share Buybacks (1% annual reduction typical for MA)
+                shareCount = shareCount * 0.99; 
+                
+                let eps = netIncome / shareCount;
+                
+                // Implied Price
+                // We interpolate PE from Current (approx 39x) to Target Exit PE
+                let startPE = BASE_DATA.currentPrice / BASE_DATA.eps; // ~39.6
+                let currentPE = startPE + ((inputs.pe - startPE) * (i / BASE_DATA.years));
+                
+                let price = eps * currentPE;
+
+                projections.push({
+                    year: 2024 + i,
+                    revenue: currentRev,
+                    netIncome: netIncome,
+                    eps: eps,
+                    price: price,
+                    pe: currentPE
+                });
+            }
+            return projections;
+        }
+
+        function runMonteCarlo(inputs, years, simulations = 500) {
+            const dt = 1; // Annual steps
+            const mu = inputs.growth / 100; // Drift (approx revenue growth as proxy for value drift)
+            const sigma = inputs.vol / 100; // Volatility
+            const startPrice = BASE_DATA.currentPrice;
+            
+            let paths = [];
+            let finalPrices = [];
+
+            for (let s = 0; s < simulations; s++) {
+                let path = [startPrice];
+                let price = startPrice;
+                for (let t = 1; t <= years; t++) {
+                    // Geometric Brownian Motion: S_t = S_{t-1} * exp((μ - 0.5σ^2)dt + σ√dt Z)
+                    let u1 = Math.random();
+                    let u2 = Math.random();
+                    let z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2); // Box-Muller transform
+                    
+                    let drift = (BASE_DATA.riskFree - 0.5 * sigma * sigma) * dt; // Risk neutral valuation often uses risk-free, but for projection we often use expected return. Let's use growth rate as expected return proxy for the "stock" drift in a simple model.
+                    // Actually, let's use the USER input growth rate as the drift for the asset value.
+                    drift = (mu - 0.5 * sigma * sigma) * dt;
+                    
+                    let shock = sigma * Math.sqrt(dt) * z;
+                    price = price * Math.exp(drift + shock);
+                    path.push(price);
+                }
+                paths.push(path);
+                finalPrices.push(price);
+            }
+            
+            // Calculate Percentiles
+            finalPrices.sort((a, b) => a - b);
+            const p10 = finalPrices[Math.floor(simulations * 0.1)];
+            const p50 = finalPrices[Math.floor(simulations * 0.5)];
+            const p90 = finalPrices[Math.floor(simulations * 0.9)];
+
+            return { paths, p10, p50, p90 };
+        }
+
+        // --- 3. UI Updates ---
+        function setScenario(type) {
+            currentScenario = type;
+            const data = SCENARIOS[type];
+            
+            // Update UI State
+            document.querySelectorAll('button[id^="btn-"]').forEach(btn => {
+                btn.className = "flex-1 py-1 text-sm rounded transition-colors text-slate-400 hover:text-white";
+            });
+            const activeBtn = document.getElementById(`btn-${type}`);
+            activeBtn.className = type === 'base' ? 
+                "flex-1 py-1 text-sm rounded transition-colors bg-blue-600 text-white shadow-lg" :
+                type === 'bull' ? 
+                "flex-1 py-1 text-sm rounded transition-colors bg-green-600 text-white shadow-lg" :
+                "flex-1 py-1 text-sm rounded transition-colors bg-red-600 text-white shadow-lg";
+
+            // Set Inputs
+            document.getElementById('input-growth').value = data.growth;
+            document.getElementById('input-margin').value = data.margin;
+            document.getElementById('input-pe').value = data.pe;
+            document.getElementById('input-vol').value = data.vol;
+            
+            updateModel();
+        }
+
+        function updateModel() {
+            // 1. Get Inputs
+            const inputs = {
+                growth: parseFloat(document.getElementById('input-growth').value),
+                margin: parseFloat(document.getElementById('input-margin').value),
+                pe: parseFloat(document.getElementById('input-pe').value),
+                vol: parseFloat(document.getElementById('input-vol').value)
+            };
+
+            // 2. Update Labels
+            document.getElementById('val-growth').innerText = inputs.growth.toFixed(1) + "%";
+            document.getElementById('val-margin').innerText = inputs.margin.toFixed(1) + "%";
+            document.getElementById('val-pe').innerText = inputs.pe.toFixed(1) + "x";
+            document.getElementById('val-vol').innerText = inputs.vol.toFixed(1) + "%";
+
+            // 3. Calculate Projections
+            const data = calculateProjections(inputs);
+            
+            // 4. Render Table
+            const tbody = document.getElementById('projectionTable');
+            tbody.innerHTML = '';
+            
+            // Add Base Year Row First
+            const baseRow = `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 text-slate-400 italic">
+                    <td class="px-4 py-3">2024 (A)</td>
+                    <td class="px-4 py-3">$${BASE_DATA.revenue.toFixed(2)}</td>
+                    <td class="px-4 py-3">-</td>
+                    <td class="px-4 py-3">$${BASE_DATA.netIncome.toFixed(2)}</td>
+                    <td class="px-4 py-3">$${BASE_DATA.eps.toFixed(2)}</td>
+                    <td class="px-4 py-3">$${BASE_DATA.currentPrice.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-right">39.6x</td>
+                </tr>
+            `;
+            tbody.innerHTML += baseRow;
+
+            data.forEach(row => {
+                const tr = `
+                    <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors">
+                        <td class="px-4 py-3 font-medium text-blue-300">${row.year} (E)</td>
+                        <td class="px-4 py-3">$${row.revenue.toFixed(2)}</td>
+                        <td class="px-4 py-3 text-green-400">+${inputs.growth}%</td>
+                        <td class="px-4 py-3">$${row.netIncome.toFixed(2)}</td>
+                        <td class="px-4 py-3">$${row.eps.toFixed(2)}</td>
+                        <td class="px-4 py-3 font-bold text-white">$${row.price.toFixed(2)}</td>
+                        <td class="px-4 py-3 text-right text-slate-400">${row.pe.toFixed(1)}x</td>
+                    </tr>
+                `;
+                tbody.innerHTML += tr;
+            });
+
+            // 5. Render Valuation Chart
+            renderValuationChart(data);
+
+            // 6. Run & Render Monte Carlo
+            const mcResults = runMonteCarlo(inputs, 5);
+            renderMCChart(mcResults);
+            
+            document.getElementById('mc-low').innerText = "$" + mcResults.p10.toFixed(0);
+            document.getElementById('mc-med').innerText = "$" + mcResults.p50.toFixed(0);
+            document.getElementById('mc-high').innerText = "$" + mcResults.p90.toFixed(0);
+        }
+
+        function renderValuationChart(data) {
+            const ctx = document.getElementById('valuationChart').getContext('2d');
+            const labels = ['2024', ...data.map(d => d.year)];
+            const prices = [BASE_DATA.currentPrice, ...data.map(d => d.price)];
+            const epsVals = [BASE_DATA.eps, ...data.map(d => d.eps)];
+
+            if (chartInstanceValuation) chartInstanceValuation.destroy();
+
+            chartInstanceValuation = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Projected Stock Price',
+                            data: prices,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'EPS ($)',
+                            data: epsVals,
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' } }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8', callback: (val) => '$' + val }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#10b981', callback: (val) => '$' + val }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMCChart(results) {
+            const ctx = document.getElementById('monteCarloChart').getContext('2d');
+            const years = ['2024', '2025', '2026', '2027', '2028', '2029'];
+            
+            // Limit datasets for performance
+            const datasets = results.paths.slice(0, 50).map(path => ({
+                data: path,
+                borderColor: 'rgba(59, 130, 246, 0.15)',
+                borderWidth: 1,
+                pointRadius: 0,
+                fill: false,
+                tension: 0.4
+            }));
+
+            // Add Mean Line
+            // datasets.push(...)
+
+            if (chartInstanceMC) chartInstanceMC.destroy();
+
+            chartInstanceMC = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8', callback: (val) => '$' + val }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        setScenario('base');
+    </script>
+</body>
+</html>

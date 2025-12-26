@@ -1,0 +1,16 @@
+google-generativeai
+pandas
+numpy
+PyPDF2
+python-dotenv
+streamlit
+plotly
+beautifulsoup4
+requests
+yfinance
+duckduckgo-search
+dash
+dash-bootstrap-components
+dash-ag-grid
+pandas
+pdfplumber
