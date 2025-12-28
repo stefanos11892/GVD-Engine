@@ -20,7 +20,17 @@ def fetch_stock_screener(category="undervalued"):
         "compounders": "biggest-companies",
         "biggest": "biggest-companies",
         "dividend": "top-rated-dividend-stocks",
-        "quality": "biggest-companies"
+        "quality": "biggest-companies",
+        # --- Sector Expansion (Verified Lists) ---
+        "mining": "rare-earth",               # Best proxy for strategic miners
+        "pharma": "pharmaceutical-stocks",
+        "healthcare": "pharmaceutical-stocks",
+        "energy": "clean-energy",             # Best proxy for modern energy
+        "banks": "bank-stocks",
+        "finance": "bank-stocks",
+        "ai": "ai-stocks",
+        "semis": "semiconductor-stocks",
+        "semiconductors": "semiconductor-stocks"
     }
     
     slug = mapping.get(category.lower(), category.lower().replace(" ", "-"))

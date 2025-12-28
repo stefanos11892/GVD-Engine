@@ -14,3 +14,5 @@ dash-bootstrap-components
 dash-ag-grid
 pandas
 pdfplumber
+docling>=2.0.0
+docling-parse

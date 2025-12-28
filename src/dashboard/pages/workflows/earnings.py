@@ -1,38 +1,82 @@
 import dash
-from dash import html, dcc
+from dash import html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
+import logging
+import json
+import os
+import plotly.graph_objects as go
+from src.utils.pdf_renderer import PDFRenderer
 
-dash.register_page(__name__, path='/workflows/earnings', name='Earnings Season')
+# Register Page
+dash.register_page(__name__, path='/earnings-workstation', name="Earnings Workstation")
 
+logger = logging.getLogger("EarningsPage")
+
+# --- DATA LOADER ---
+def load_data():
+    """Lengths for MVP: Load the JSON files generated in Phase 4."""
+    report_path = "synthesis_report.json"
+    log_path = "verification_log.json"
+    
+    report = {}
+    if os.path.exists(report_path):
+        with open(report_path, "r") as f:
+            report = json.load(f)
+            
+    logs = {}
+    if os.path.exists(log_path):
+         with open(log_path, "r") as f:
+            logs = json.load(f)
+            
+    return report, logs
+
+report_data, log_data = load_data()
+pdf_path = "complex_10k.pdf" # Default target for MVP
+
+# --- LAYOUT ---
 layout = dbc.Container([
-    html.H2("Earnings Season Analysis", className="mb-4"),
-    html.P("Analyze earnings reports and 10-Ks.", className="text-muted"),
+    # Store Data Client-Side
+    dcc.Store(id='report-store', data=report_data),
+    dcc.Store(id='log-store', data=log_data),
+    dcc.Store(id='pdf-page-store', data={'page': 1}), # Tracks current page
     
-    html.Div([
-        html.Div("Upload Documents", className="card-principal-header"),
-        html.Div([
-            dcc.Upload(
-                id='upload-data',
-                children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
-                style={
-                    'width': '100%', 'height': '60px', 'lineHeight': '60px',
-                    'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '5px',
-                    'textAlign': 'center', 'margin': '10px'
-                },
-                multiple=True
-            ),
-            dbc.Button("Analyze", id="btn-analyze-earnings", color="info", className="mt-2"),
-        ], className="card-principal-body")
-    ], className="card-principal mb-4"),
-    
-    html.Div([
-        html.Div("Analysis Results", className="card-principal-header"),
-        html.Div([
-            dcc.Loading(
-                id="loading-earnings",
-                type="default",
-                children=html.Div(id="earnings-output", children="Results will appear here...")
+    dbc.Row([
+        # --- LEFT PANEL: INVESTMENT MEMO ---
+        dbc.Col([
+            html.H4("Institutional Thesis", className="mb-3"),
+            html.Div(id='thesis-container', className="p-3 border rounded", style={"height": "80vh", "overflowY": "scroll", "backgroundColor": "#121212", "color": "#FFFFFF", "borderColor": "#333"}),
+        ], width=4),
+        
+        # --- RIGHT PANEL: PDF CANVAS ---
+        dbc.Col([
+            dbc.Row([
+               dbc.Col([html.H4("Source Document Navigator")], width=8),
+               dbc.Col([
+                   dbc.Button("Prev", id="btn-prev", size="sm", className="me-2"),
+                   html.Span(id="page-indicator", children="Page 1"),
+                   dbc.Button("Next", id="btn-next", size="sm", className="ms-2"),
+               ], width=4, className="text-end") 
+            ], className="mb-2"),
+            
+            dcc.Graph(
+                id='pdf-canvas',
+                config={'displayModeBar': True, 'scrollZoom': True},
+                style={"height": "75vh"}
             )
-        ], className="card-principal-body")
-    ], className="card-principal")
-])
+        ], width=5),
+        
+        # --- SIDEBAR: AUDIT TRAIL ---
+        dbc.Col([
+            html.H5("Adversarial Audit Panel", className="text-danger"),
+            html.Hr(),
+            html.Div(id='audit-panel-content', children=[
+                html.P("Select a metric to view audit trail.", className="text-muted")
+            ])
+        ], width=3, className="border-start")
+    ])
+], fluid=True, className="p-4")
+
+# --- CALLBACKS (Logic) ---
+# Note: For strict MVC, callbacks should be in `src/dashboard/callbacks/`.
+# However, for Dash Pages, inline callbacks or registering them in app.py is common.
+# We will define the layout here and the Logic in `earnings_callbacks.py` as planned.

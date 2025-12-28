@@ -1,10 +1,33 @@
-__pycache__/
-*.pyc
-.env
-.DS_Store
+# Virtual Environment
+.venv/
+venv/
+env/
 
-# User Data
-inputs/*
-data/*.csv
-data/*.json
-data/uploads/*
+# Python Cache
+__pycache__/
+*.py[cod]
+
+# IDE Settings
+.vscode/
+# Whitelist our settings file so we can edit it!
+!.vscode/settings.json
+.idea/
+
+# Distribution / Build
+dist/
+build/
+*.egg-info/
+
+# Environment Variables
+.env
+
+# Data & Logs (Clean up Source Control)
+*.log
+*.pdf
+*.csv
+synthesis_report.json
+delta_report.json
+
+# Exceptions (Do not ignore)
+!requirements.txt
+!verification_log.json

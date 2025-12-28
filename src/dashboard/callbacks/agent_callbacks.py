@@ -45,43 +45,127 @@ def render_rich_workflow_ui(data):
             ], className="badge-status-dot ms-4"), width="auto")
         ], className="mb-4 align-items-center")
 
-        # 2. Originator Text (Thesis)
-        originator_sec = html.Div([
-            html.Div("Investment Thesis", className="card-principal-header"),
-            html.Div(
-                dcc.Markdown(data.get("originator", "No thesis."), className="text-body-technical"),
-                className="card-principal-body"
-            )
-        ], className="card-principal")
+        # 2. Originator Text (Thesis) -> v0 Component
+        from src.dashboard.components.thesis_card import render_thesis_card
+        
+        
+        # 3. Analyst Stats (Move extraction up for usage)
+        scores = analyst_data.get("scores", {})
+        
+        # Prepare Data for v0 Card
+        card_status = verdict 
+        if card_status not in ["PASS", "FAIL", "HOLD", "BUY", "SELL"]:
+            card_status = "HOLD"
+            
+        # Parse deals from logic
+        
+        # Helper to clean narrative
+        import re
+        raw_narrative = data.get("originator", "Generating investment thesis...")
+        # 1. Strip Markdown Table (lines starting with |)
+        clean_narrative = re.sub(r'\|.*\|', '', raw_narrative).strip()
+        # 2. Fix multiple newlines
+        clean_narrative = re.sub(r'\n{3,}', '\n\n', clean_narrative)
+        
+        deal_data = {
+            "ticker": ticker,
+            "market_cap": "Checking...",
+            "pe": "N/A",
+            "thesis": "" # Prevent duplication. Main narrative is at the top.
+        }
+
+        
+        # Try to enrich with Analyst data first
+        if scores:
+             # If analyst provides explicit fields
+             if "market_cap" in analyst_data: deal_data["market_cap"] = analyst_data.get("market_cap")
+             if "pe_ratio" in analyst_data: deal_data["pe"] = str(analyst_data.get("pe_ratio"))
+        
+        # Fallback: Scrape Originator Table if metrics missing
+        if deal_data["market_cap"] == "Checking...":
+            try:
+                table_match = re.search(fr'\|\s*\**{ticker}\**\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|', raw_narrative, re.IGNORECASE)
+                if table_match:
+                    deal_data["market_cap"] = table_match.group(1).strip()
+                    deal_data["pe"] = table_match.group(2).strip()
+            except:
+                pass
+                
+        # --- VALIDATION LAYER ---
+        # If PE is missing or arguably hallucinated (e.g. > 200 for non-tech, or equals price), fetch real data.
+        # Simple check: If PE is "N/A" or likely wrong, fetch.
+        from src.tools.market_data import get_market_data
+        
+        should_fetch = False
+        if deal_data["pe"] in ["N/A", "Checking..."]:
+            should_fetch = True
+        else:
+            # Check for hallucination (Price ~= PE)
+            # This is hard without knowing price.
+            pass
+            
+        # For now, let's just fetch if we want high accuracy (User complained about data quality)
+        # We fetch if we don't have a solid number.
+        if should_fetch or deal_data["pe"] == deal_data["ticker"]: # Basic nonsense check
+             real_data = get_market_data(ticker)
+             if real_data.get("pe"):
+                 deal_data["pe"] = f"{real_data['pe']:.2f}"
+             if real_data.get("market_cap"):
+                 deal_data["market_cap"] = real_data["market_cap"]
+
+        # The 'narrative' argument in v0 component matches 'originator' text
+        # The 'deal_memo' argument matches the struct above
+        
+        originator_sec = render_thesis_card(
+            ticker=ticker,
+            status=card_status,
+            narrative=clean_narrative,
+            deal_memo=deal_data
+        )
 
         # 3. Analyst Stats
         scores = analyst_data.get("scores", {})
+        rationales = analyst_data.get("score_rationale", {})
         
-        def render_neon_bar(label, value, color="info"):
-            # color mapping for neon glow (handled by CSS currentcolor if possible, or classes)
-            # Actually CSS sets shadow based on currentcolor. 
+        def render_neon_bar(label, value, key, color="info"):
+            # Fix scaling: If value > 10, assume it's out of 100.
+            # We want display out of 10.
+            # We want width out of 100%.
+            
+            raw_val = value
+            if raw_val > 10:
+                display_val = raw_val / 10.0 # 95 -> 9.5
+                width_val = raw_val # 95%
+            else:
+                display_val = raw_val # 9.5 -> 9.5
+                width_val = raw_val * 10 # 95%
+                
             # Bootstrap colors: text-info = cyan, text-primary = blue.
             style_color = "#3b82f6" # primary
             if color == "success": style_color = "#22c55e"
             if color == "warning": style_color = "#eab308"
             
+            rationale_text = rationales.get(key, "No specific rationale provided.")
+            
             return html.Div([
                 html.Div([
                      html.Span(label, className="text-label"),
-                     html.Span(f"{int(value*10)}/10", className="text-value float-end small")
+                     html.Span(f"{display_val:.1f}/10", className="text-value float-end small")
                 ], className="mb-1 clearfix"),
                 html.Div([
-                    html.Div(className="progress-neon-bar", style={"width": f"{value*100}%", "backgroundColor": style_color, "color": style_color})
-                ], className="progress-neon-container mb-4")
+                    html.Div(className="progress-neon-bar", style={"width": f"{width_val}%", "backgroundColor": style_color, "color": style_color})
+                ], className="progress-neon-container mb-0"),
+                html.Div(rationale_text, className="text-white-50 small mt-1 mb-3 fst-italic", style={"fontSize": "0.75rem"})
             ])
 
         analyst_card = html.Div([
             html.Div("Fundamental Analysis", className="card-principal-header"),
             html.Div([
-                render_neon_bar("Business Quality", scores.get("quality", 0), "primary"),
-                render_neon_bar("Valuation", scores.get("valuation", 0), "success"),
-                render_neon_bar("Management", scores.get("management", 0), "warning"),
-                html.Div(f"TARGET: {analyst_data.get('fair_value_range', 'N/A')}", className="mt-2 text-center text-label")
+                render_neon_bar("Business Quality", scores.get("quality", 0), "quality", "primary"),
+                render_neon_bar("Valuation", scores.get("valuation", 0), "valuation", "success"),
+                # render_neon_bar("Management", scores.get("management", 0), "management", "warning"),
+                # html.Div(f"TARGET: {analyst_data.get('fair_value_range', 'N/A')}", className="mt-2 text-center text-label")
+                render_neon_bar("Management", scores.get("management", 0), "management", "warning")
             ], className="card-principal-body")
         ], className="card-principal h-100")
 
@@ -103,6 +187,7 @@ def render_rich_workflow_ui(data):
                          html.Span("MAX DRAWDOWN", className="text-label"),
                          html.Span(risk_data.get('max_drawdown_forecast', 'N/A'), className="float-end text-value")
                     ], className="bg-transparent border-bottom border-secondary p-2"),
+                    html.Div(risk_data.get('max_drawdown_rationale', ''), className="text-secondary small px-2 py-1 mb-2 fst-italic", style={"fontSize": "0.75rem"}),
                     dbc.ListGroupItem([
                          html.Span("BEAR CASE", className="text-label d-block mb-2 mt-2"),
                          html.Span(risk_data.get('scenarios', {}).get('market_crash_impact', 'N/A'), className="text-body-technical small")

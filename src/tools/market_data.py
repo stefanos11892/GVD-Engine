@@ -176,6 +176,15 @@ def get_market_data(ticker):
     if not data["price"]:
         data["error"] = "Data unavailable from all sources."
         
+    # Calculated Metrics (Add P/E if missing)
+    if data["price"] and data.get("eps"):
+        try:
+             eps_val = float(data["eps"])
+             if eps_val > 0:
+                 data["pe"] = float(data["price"]) / eps_val
+        except:
+             pass
+             
     return data
 
 def get_current_price(ticker):

@@ -13,6 +13,7 @@ from src.dashboard.components.sidebar import create_sidebar
 # Import callbacks to register them
 import src.dashboard.callbacks.agent_callbacks
 import src.dashboard.callbacks.data_callbacks
+from src.dashboard.callbacks.earnings_callbacks import register_earnings_callbacks
 
 # Initialize the app with a dark theme and Bootstrap Icons
 app = Dash(
@@ -21,6 +22,9 @@ app = Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP],
     suppress_callback_exceptions=True
 )
+
+# Register Earnings Logic
+register_earnings_callbacks(app)
 
 # Define the layout
 app.layout = dbc.Container([
@@ -36,4 +40,4 @@ app.layout = dbc.Container([
 ], fluid=True)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8052)

@@ -1,0 +1,113 @@
+/* 
+   GVD Engine - Principal FinTech Terminal
+   Design System: High Density, Technical, Depth
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+:root {
+    /* Palette */
+    --bg-page: #020617;
+    --bg-card: #0f172a;
+    --bg-header: #1e293b;
+
+    --border-tech: rgba(59, 130, 246, 0.3);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-label: #64748b;
+
+    /* Typography */
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Consolas", monospace;
+
+    /* Dimensions */
+    --radius-card: 12px;
+    --pad-card: 24px;
+}
+
+body {
+    background-color: var(--bg-page) !important;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Principal Cards */
+.card-principal {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-tech) !important;
+    border-radius: var(--radius-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.card-principal-header {
+    background-color: var(--bg-header);
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border-tech);
+    color: white;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.card-principal-body {
+    padding: var(--pad-card);
+}
+
+/* Typography */
+.text-label {
+    color: var(--text-label);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.text-value {
+    color: #f1f5f9;
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.text-body-technical {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+}
+
+/* Status Badge */
+.badge-status-dot {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.dot-green {
+    background-color: #4ade80;
+}
+
+.dot-red {
+    background-color: #f87171;
+}

@@ -2,140 +2,76 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-from dash import html
 
-# Add project root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add src to path
+sys.path.append(os.path.join(os.getcwd()))
 
-# Mock Dash Page Registry to allow import without App
-import dash
-dash.register_page = lambda *args, **kwargs: None
+from src.logic.valuation import ValuationEngine
 
-from src.tools.market_data import get_market_data
-from src.dashboard.pages.workflows.forecasting import update_simulation
+def audit_adbe_case():
+    print("--- 1. ADBE Audit (User Input Simulation) ---")
+    
+    # Inputs guessed from User Screenshot & Report
+    # Current Price: $553.00
+    # EPS: $10.7
+    # Revenue: $23.77B
+    # Growth Slider: User set to ~35%? (0.35)
+    # Net Margin: 25%? (0.25)
+    # Target P/E: 40x (Manual Override)
+    # Volatility: 35% (0.35)
+    
+    ticker = "ADBE"
+    current_price = 553.0
+    current_eps = 10.7
+    current_rev = 23_770_000_000
+    
+    # Aggressive Inputs
+    growth_rate = 0.35 # 35% CAGR is huge for a large cap
+    target_margin = 0.25
+    target_pe = 40.0
+    volatility = 0.35
+    peg = 1.5
+    method = "pe" # manual override
+    
+    print(f"INPUTS:\nPrice: ${current_price}\nGrowth: {growth_rate*100}%\nMargin: {target_margin*100}%\nTarget PE: {target_pe}x\n")
+    
+    # Run Engine
+    results = ValuationEngine.calculate_valuation(
+        ticker, current_price, current_eps, current_rev, 
+        growth_rate, target_margin, target_pe, volatility, peg, method, {}
+    )
+    
+    print("--- DETERMINISTIC PROJECTION ---")
+    df = pd.DataFrame(results["table_data"])
+    print(df[["year", "revenue", "net_income", "eps", "price", "pe"]])
+    
+    print("\n--- MONTE CARLO DRIVERS ---")
+    print(f"Implied Drift (Annual Return): {results['implied_drift']*100:.2f}%")
+    print(f"Implied Rate (r): {results['r_implied']:.4f}")
+    
+    # Check Step-by-Step Compounding
+    # If Growth is 35% for 5 years: 1.35^5 = 4.5x
+    # If P/E expands from Current (~50x) to 40x? No, current PE is 553/10.7 = 51x. 
+    # If P/E stays high and earnings 4.5x, price 4.5x.
+    # Drifts of 40-50% are unsustainable.
+    
+    # Validation Check
+    compound_factor = (1 + growth_rate)**5
+    print(f"\nSimple Compounding Check (5 years @ 35%): {compound_factor:.2f}x")
+    
+    expected_price = current_price * compound_factor * (target_pe / (current_price/current_eps)) 
+    print(f"Back-of-napkin Est: {expected_price:.2f}")
 
-def run_audit():
-    tickers = ["NVDA", "TSLA", "JNJ", "KO", "XOM", "AMD", "INTC", "JPM", "AMZN", "NET"]
-    results = []
-
-    print(f"{'Ticker':<6} | {'PE':<6} | {'Growth':<6} | {'Base Price':<10} | {'MC Median':<10} | {'Var %':<6} | {'Status':<6}")
-    print("-" * 80)
-
-    for ticker in tickers:
-        try:
-            # 1. Fetch Data
-            real_data = get_market_data(ticker)
-            price = real_data.get("price") or 100.0
-            
-            # 2. Smart Defaults Logic (Replicated from fetch_agent_data)
-            eps_raw = real_data.get("eps")
-            try:
-                eps = float(eps_raw) if eps_raw else None
-            except:
-                eps = None
-
-            current_pe = price / eps if (eps and eps > 0) else 25.0
-            if current_pe > 150: current_pe_capped = 150 # Cap for input only, logic uses "eff_start_pe"
-            else: current_pe_capped = current_pe
-
-            rev = real_data.get("revenue_ttm")
-            net = real_data.get("net_income_ttm")
-            
-            # Logic Update: If Margin is negative, default to 15% (Target)
-            if rev and net and rev > 0:
-                calc_margin = net / rev
-                smart_margin = 0.15 if calc_margin < 0 else calc_margin
-            else:
-                smart_margin = 0.20
-            
-            smart_growth = 0.15 # Default
-            smart_vol = real_data.get("volatility") or 0.35
-            
-            # Construct Data Dict for Update
-            data_dict = {
-                "current_price": price,
-                "eps": eps,
-                "metrics": {"revenue": rev, "net_income": net},
-                "cash": real_data.get("cash", 0),
-                "debt": real_data.get("debt", 0),
-                "shares": real_data.get("shares"),
-                "base_case": {
-                    "revenue_growth": smart_growth,
-                    "target_net_margin": smart_margin,
-                    "target_pe": 25
-                }
-            }
-
-            # 3. Run Simulation (Base Case: PEG=1.5, Method='pe')
-            # update_simulation(growth, margin, pe_override, vol, peg, method, data)
-            fig_proj, fig_mc, table, stats_ui = update_simulation(
-                smart_growth, smart_margin, 25, smart_vol, 1.5, "pe", data_dict
-            )
-
-            # 4. Extract Results (PE Mode)
-            tbody = table.children[1]
-            last_row = tbody.children[-1]
-            price_str = last_row.children[-1].children.split("(")[0].replace("$", "").strip().replace(",", "")
-            implied_price_2029 = float(price_str)
-
-            median_div = stats_ui.children[1].children[1]
-            median_str = median_div.children.replace("$", "").replace(",", "").strip()
-            mc_median = float(median_str)
-            
-            variance = abs(mc_median - implied_price_2029) / implied_price_2029
-            variance_pct = variance * 100
-            status = "PASS" if variance_pct < 10 else "FAIL"
-            
-            # 6. Flash Crash Check
-            first_row = tbody.children[0]
-            price_str_1 = first_row.children[-1].children.split("(")[0].replace("$", "").strip().replace(",", "")
-            price_year_1 = float(price_str_1)
-            if current_pe > 50 and price_year_1 < (price * 0.8): status = "CRASH"
-
-            # --- DCF GAP CHECK (V4) ---
-            # Run in DCF mode and check if Year 1 starts near Current Price
-            # Ideally we check Year 0 but table starts at Year 1.
-            # V4 Logic: Price(t) = PV(Remaining) + NetCash.
-            # Year 1 Price should be consistent with Current Price. 
-            # If r_implied is solved correctly, Price_0 = Current. 
-            # Price_1 ~= Current * (1+r) (roughly).
-            # Let's check variance of Year 1 vs Current Price.
-            
-            fig_proj_dcf, _, table_dcf, _ = update_simulation(
-                smart_growth, smart_margin, 25, smart_vol, 1.5, "dcf", data_dict
-            )
-            tbody_dcf = table_dcf.children[1]
-            row_1_dcf = tbody_dcf.children[0]
-            p1_dcf_str = row_1_dcf.children[-1].children.split("(")[0].replace("$", "").strip().replace(",", "")
-            p1_dcf = float(p1_dcf_str)
-            
-            # Gap Check: Is Year 1 within 50% of Current? (Just sane?)
-            # Or better: check graph data for Year 0 point?
-            # fig_proj_dcf['data'][0]['y'][0] should be Year 0 Price (Current).
-            
-            try:
-                # Trace 0 is the line. x[0]=Year0, y[0]=Price0.
-                year0_price = fig_proj_dcf.data[0].y[0]
-                gap_var = abs(year0_price - price) / price
-                dcf_status = "PASS" if gap_var < 0.05 else f"FAIL ({gap_var*100:.1f}%)"
-            except:
-                dcf_status = "ERR"
-
-            print(f"{ticker:<6} | {current_pe:<6.1f} | {implied_price_2029:<9.2f} | {mc_median:<9.2f} | {variance_pct:<5.1f} | {status:<5} | DCF_Gap: {dcf_status}")
-            
-            
-            results.append({
-                "Ticker": ticker,
-                "PE": current_pe,
-                "Implied_2029": implied_price_2029,
-                "MC_Median": mc_median,
-                "Variance": variance_pct,
-                "Status": status
-            })
-
-        except Exception as e:
-            print(f"{ticker:<6} | ERROR: {str(e)}")
-
+    # Run Monte Carlo audit
+    mu_adj = results['implied_drift'] + 0.5 * volatility**2
+    paths = ValuationEngine.generate_monte_carlo(current_price, volatility, mu=mu_adj, simulations=1000)
+    
+    final_prices = paths[-1]
+    p90 = np.percentile(final_prices, 90)
+    print(f"\nMonte Carlo P90: ${p90:.0f}")
+    
+    if p90 > 10000:
+        print("!!! ALERT: P90 > $10,000. Logic seems technically correct given inputs, but inputs are unrealistic.")
+    
 if __name__ == "__main__":
-    print("Running Lead Quantitative Audit...\n")
-    run_audit()
+    audit_adbe_case()

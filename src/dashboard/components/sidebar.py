@@ -14,7 +14,7 @@ def create_sidebar():
         html.H6("Workflows", className="text-muted ms-2"),
         dbc.Nav([
             dbc.NavLink([html.I(className="bi bi-lightbulb me-2"), "New Idea"], href="/workflows/new-idea", active="exact"),
-            dbc.NavLink([html.I(className="bi bi-bar-chart-steps me-2"), "Earnings"], href="/workflows/earnings", active="exact"),
+            dbc.NavLink([html.I(className="bi bi-bar-chart-steps me-2"), "Earnings"], href="/earnings-workstation", active="exact"),
             dbc.NavLink([html.I(className="bi bi-calculator me-2"), "Forecasting"], href="/workflows/forecasting", active="exact"),
             dbc.NavLink([html.I(className="bi bi-shield-exclamation me-2"), "Risk Report"], href="/workflows/risk", active="exact"),
             dbc.NavLink([html.I(className="bi bi-broadcast me-2"), "Radar"], href="/workflows/radar", active="exact"),

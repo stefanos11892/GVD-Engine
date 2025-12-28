@@ -127,6 +127,63 @@ body {
     padding: var(--pad-card);
 }
 
+/* --- v0 Design System Adaptation --- */
+
+/* Grid Layouts (Replacing Tailwind grid-cols-3) */
+.grid-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    background-color: rgba(2, 6, 23, 0.5);
+    /* Deep dark glass */
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* Typography Utilities */
+.text-label-micro {
+    color: var(--text-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.metric-value-lg {
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    /* ~text-xl */
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.025em;
+}
+
+.text-body-technical {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    /* Relaxed leading */
+    color: #e2e8f0;
+}
+
+.thesis-container {
+    padding: 1.25rem;
+    background-color: rgba(30, 41, 59, 0.3);
+    /* Slate glass */
+    border-radius: 8px;
+    border: 1px solid var(--border-tech);
+    color: var(--text-primary);
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 /* --- Component: Neon Progress --- */
 .progress-neon-container {
     height: 6px;

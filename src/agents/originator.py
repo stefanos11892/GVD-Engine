@@ -28,8 +28,9 @@ You DO NOT GUESS. You use the provided **SCREENER LIST** as your hunting ground.
 4.  **Pitch It**: Write a compelling 1-paragraph pitch.
 
 [FORMAT]
-Start with: "Based on the live screen, I have identified [TICKER] as the top candidate."
-Present a "Deal Memo Table" with Ticker, Market Cap, P/E (if available), and Thesis.
+Start with: "Based on the live screen, I have identified **[TICKER]** as the top candidate."
+Write a compelling, narrative-driven investment thesis (100-150 words).
+DO NOT include a data table. The Analyst will provide the numbers.
 """
         )
 
@@ -44,6 +45,19 @@ Present a "Deal Memo Table" with Ticker, Market Cap, P/E (if available), and The
             category = "dividend"
         elif "big" in text or "large" in text or "compound" in text:
             category = "biggest"
+        # --- Sector Expansion ---
+        elif "mine" in text or "mining" in text or "metal" in text or "resource" in text:
+            category = "mining"
+        elif "pharma" in text or "drug" in text or "bio" in text or "health" in text:
+            category = "pharma"
+        elif "energy" in text or "oil" in text or "gas" in text or "solar" in text:
+            category = "energy"
+        elif "bank" in text or "finance" in text:
+            category = "banks"
+        elif "ai" in text or "robot" in text or "intel" in text:
+            category = "ai"
+        elif "semi" in text or "chip" in text:
+            category = "semis"
             
         # 2. Fetch Live Screen
         print(f"DEBUG: Originator running screen for '{category}'...")

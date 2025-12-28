@@ -542,85 +542,74 @@ def generate_ai_report(n_clicks, ticker_input, dashboard_data):
              
         data = json.loads(json_str)
         
-        # UI Rendering
-        rating = data.get("rating", "NEUTRAL")
-        color_map = {"STRONG BUY": "success", "BUY": "success", "HOLD": "warning", "SELL": "danger", "SHORT": "danger"}
-        rating_color = color_map.get(rating, "secondary")
-        
-        # Scores & Rationales
+        # Extract Variables for UI
+        rating = data.get("rating", "HOLD")
         scores = data.get("scores", {})
-        rationales = data.get("score_rationale", {})
         
-        return html.Div([
-            # Top Row: Rating & Verdict
+        # v0 UI Integration
+        from src.dashboard.components.thesis_card import render_thesis_card
+        
+        # 1. Map Data to v0 Thesis Card Schema
+        deal_memo_data = {
+            "ticker": ticker,
+            "market_cap": "See Model",
+            "pe": "Dynamic", # In forecasting, PE is an input/output of the model
+            "thesis": data.get("detailed_analysis", "No detailed analysis provided.")
+        }
+        
+        # Override fields with specific analyst findings if valid
+        if "fair_value_range" in data:
+             deal_memo_data["market_cap"] = f"FV: {data.get('fair_value_range')}"
+        
+        v0_card = render_thesis_card(
+            ticker=ticker,
+            status=rating, 
+            narrative=data.get("verdict_reasoning", "No verdict provided."),
+            deal_memo=deal_memo_data
+        )
+        
+        # 2. Add Supplementary Data (Bull/Bear & Scores) using new CSS
+        supplementary_section = html.Div([
+             # Methodology Checks (Grid Layout)
+             html.Div([
+                 html.Div([
+                     html.Span("Quality Score", className="text-label-micro"),
+                     dbc.Progress(value=scores.get("quality", 50), color="info", className="mb-1", style={"height": "6px"}),
+                     html.Div(f"{scores.get('quality', 50)}/100", className="text-white small text-end")
+                 ]),
+                 html.Div([
+                     html.Span("Valuation Score", className="text-label-micro"),
+                     dbc.Progress(value=scores.get("valuation", 50), color="success", className="mb-1", style={"height": "6px"}),
+                     html.Div(f"{scores.get('valuation', 50)}/100", className="text-white small text-end")
+                 ]),
+                 html.Div([
+                     html.Span("Management Score", className="text-label-micro"),
+                     dbc.Progress(value=scores.get("management", 50), color="warning", className="mb-1", style={"height": "6px"}),
+                     html.Div(f"{scores.get('management', 50)}/100", className="text-white small text-end")
+                 ]),
+             ], className="grid-metrics mb-4"),
+
+            # Bull/Bear Cases
             dbc.Row([
                 dbc.Col([
-                    html.Div(rating, className=f"status-pill {rating.lower()} mb-2"),
-                    html.Div(f"Fair Value: {data.get('fair_value_range', 'N/A')}", className="fs-5 text-white mt-1"),
-                ], width=4, className="text-center border-fill border-end border-secondary p-4"),
-                
-                dbc.Col([
-                    html.H5("Investment Verdict", className="text-info fw-bold"),
-                    html.P(data.get("verdict_reasoning", "No verdict provided."), className="lead fs-6 text-light")
-                ], width=8, className="ps-4")
-            ], className="mb-4 align-items-center"),
-            
-            html.Hr(className="border-secondary"),
-            
-            # Middle Row: Scores & Methodology
-            dbc.Row([
-                dbc.Col([
                     html.Div([
-                        html.H6("Quality Score", className="text-muted text-uppercase small mb-1"),
-                        dbc.Progress(value=scores.get("quality", 50), color="info", className="mb-1", style={"height": "8px"}),
-                        html.P(rationales.get("quality", "Analysis pending..."), className="text-secondary small fst-italic mb-3")
-                    ]),
-                    
-                    html.Div([
-                        html.H6("Valuation Score", className="text-muted text-uppercase small mb-1"),
-                        dbc.Progress(value=scores.get("valuation", 50), color="success", className="mb-1", style={"height": "8px"}),
-                        html.P(rationales.get("valuation", "Analysis pending..."), className="text-secondary small fst-italic mb-3")
-                    ]),
-                    
-                    html.Div([
-                        html.H6("Management Score", className="text-muted text-uppercase small mb-1"),
-                        dbc.Progress(value=scores.get("management", 50), color="warning", className="mb-1", style={"height": "8px"}),
-                        html.P(rationales.get("management", "Analysis pending..."), className="text-secondary small fst-italic mb-0")
-                    ]),
-                ], width=5),
-                
-                dbc.Col([
-                    html.H6("Forensic Methodology Checks", className="text-muted text-uppercase small mb-3"),
-                    html.Ul([
-                        html.Li([html.Span("ROIC vs WACC: ", className="fw-bold text-info"), data.get("methodology_check", {}).get("roic_vs_wacc", "N/A")]),
-                        html.Li([html.Span("Earnings Quality: ", className="fw-bold text-info"), data.get("methodology_check", {}).get("earnings_quality", "N/A")]),
-                        html.Li([html.Span("SBC Impact: ", className="fw-bold text-info"), data.get("methodology_check", {}).get("sbc_impact", "N/A")]),
-                    ], className="list-unstyled text-small text-light mb-4"),
-                    
-                    html.Div([
-                        html.H6("Detailed Analysis", className="text-muted text-uppercase small mb-2"),
-                        html.P(data.get("detailed_analysis", "Generating deep dive analysis..."), className="text-white small", style={"lineHeight": "1.6", "textAlign": "justify", "fontSize": "0.9rem"})
-                    ], className="p-3 bg-dark-glass border border-secondary rounded")
-                    
-                ], width=7)
-            ], className="mb-4"),
-            
-            # Bottom Row: Bull/Bear
-            dbc.Row([
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader("🐂 Bull Case", className="text-success fw-bold bg-dark-glass border-bottom border-success"),
-                        dbc.CardBody(data.get("bull_case", "N/A"), className="text-white small")
-                    ], className="border-success h-100 bg-transparent")
+                        html.Div("🐂 Bull Case", className="text-success fw-bold text-uppercase small mb-2"),
+                         html.P(data.get("bull_case", "N/A"), className="text-body-technical small")
+                    ], className="thesis-container h-100")
                 ], width=6),
                 
                 dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader("🐻 Bear Case", className="text-danger fw-bold bg-dark-glass border-bottom border-danger"),
-                        dbc.CardBody(data.get("bear_case", "N/A"), className="text-white small")
-                    ], className="border-danger h-100 bg-transparent")
+                   html.Div([
+                        html.Div("🐻 Bear Case", className="text-danger fw-bold text-uppercase small mb-2"),
+                         html.P(data.get("bear_case", "N/A"), className="text-body-technical small")
+                    ], className="thesis-container h-100")
                 ], width=6)
             ])
+        ])
+
+        return html.Div([
+            v0_card,
+            html.Div(supplementary_section, className="mt-4")
         ])
         
     except Exception as e:

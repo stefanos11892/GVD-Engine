@@ -33,6 +33,7 @@ You must respond in **STRICT JSON** format. Do not add markdown around the JSON.
     "ticker": "SYMBOL",
     "risk_rating": "LOW" | "MODERATE" | "HIGH" | "EXTREME",
     "max_drawdown_forecast": "-XX%",
+    "max_drawdown_rationale": "Explanation based on Beta/Vol (e.g. 'Beta 1.5x implies 1.5x Spy drop').",
     "scenarios": {
         "rate_shock_impact": "Describe impact of high rates",
         "market_crash_impact": "Describe beta/correlation risk",

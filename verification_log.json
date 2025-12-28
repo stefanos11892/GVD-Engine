@@ -1,0 +1,40 @@
+{
+  "run_id": "20251227_225336",
+  "timestamp": "2025-12-27T22:53:53.223630",
+  "pdf_path": "complex_10k.pdf",
+  "metrics": [
+    {
+      "metric_id": "cash_equivalents",
+      "display_name": "Cash and Cash Equivalents",
+      "value_raw": "28,840",
+      "provenance": {
+        "source_snippet": "Cash and cash equivalents 28,840",
+        "page": 1,
+        "bbox": [
+          31.18,
+          584.54,
+          535.75,
+          707.17
+        ]
+      },
+      "verification": {
+        "status": "verified",
+        "note": "The claimed value 28,840 for 'Cash and cash equivalents' matches the source text exactly. No scaling or transcription error detected in this micro-extraction. The extraction is technically correct, much to my disappointment.",
+        "details": "None"
+      },
+      "recovery_used": true,
+      "audit_history": [
+        {
+          "attempt": 1,
+          "value_raw": "2,884",
+          "verification": {
+            "status": "error_detected",
+            "note": "A clear, egregious transcription error. The extractor understated Cash and Cash Equivalents by an order of magnitude, claiming 2,884 when the provenance clearly states 28,840. Someone needs to learn how to copy numbers.",
+            "details": "Numerical mismatch. The claimed value (2,884) does not match the source value (28,840). The claimed value appears to have dropped the final zero, resulting in a 10x difference."
+          },
+          "timestamp": "2025-12-27T22:53:53.223630"
+        }
+      ]
+    }
+  ]
+}
