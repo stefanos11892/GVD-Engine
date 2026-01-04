@@ -8,10 +8,8 @@ from src.utils.pdf_renderer import PDFRenderer
 
 logger = logging.getLogger("EarningsCallbacks")
 
-# Initialize PDF Renderer (Global or Cached)
-# In prod, this would be dynamic per session/file
-PDF_PATH = "complex_10k.pdf"
-renderer = PDFRenderer(PDF_PATH)
+# Global renderer removed to prevent file handle leaks.
+# Use get_cached_renderer(path) instead.
 
 LOG_PATH = "verification_log.json"
 
