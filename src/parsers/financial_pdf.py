@@ -40,16 +40,35 @@ def configure_pipeline():
         backend=DoclingParseV2DocumentBackend
     )
 
-class FinancialPDFParser:
-    def __init__(self):
+# ======================================
+# SINGLETON PATTERN FOR HEAVY ML MODEL
+# ======================================
+# The DocumentConverter loads large transformer-based models (TableFormer).
+# Re-initializing on every request causes 1-2GB RAM spikes and 5-10s delay.
+# Solution: Load once at module level and reuse.
+
+_CONVERTER_INSTANCE = None
+
+def _get_converter_instance():
+    """Returns a shared DocumentConverter instance (singleton)."""
+    global _CONVERTER_INSTANCE
+    if _CONVERTER_INSTANCE is None:
         if DocumentConverter is None:
             raise ImportError("Docling library is missing. Please install it.")
-            
-        self.converter = DocumentConverter(
+        logger.info("Initializing DocumentConverter (one-time, heavy operation)...")
+        _CONVERTER_INSTANCE = DocumentConverter(
             format_options={
                 InputFormat.PDF: configure_pipeline()
             }
         )
+        logger.info("DocumentConverter ready.")
+    return _CONVERTER_INSTANCE
+
+
+class FinancialPDFParser:
+    def __init__(self):
+        # Use shared singleton instance instead of creating a new one
+        self.converter = _get_converter_instance()
 
     def parse(self, file_path: str) -> Dict[str, Any]:
         """

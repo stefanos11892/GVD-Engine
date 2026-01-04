@@ -381,13 +381,36 @@ def update_audit_sidebar_logic(clicks):
     ])
 
 # --- HELPER LOGIC (Testable) ---
-from functools import lru_cache
 
-@lru_cache(maxsize=1)
+# ======================================
+# PDF RENDERER CACHING WITH CLEANUP
+# ======================================
+# Problem: lru_cache doesn't call close() on old renderers when path changes.
+# Solution: Manual cache with explicit cleanup.
+
+_renderer_cache = {"path": None, "instance": None}
+
 def get_cached_renderer(pdf_path):
+    """Returns a cached PDFRenderer, closing the old one if the path changed."""
+    global _renderer_cache
+    
     if not os.path.exists(pdf_path):
         return None
-    return PDFRenderer(pdf_path)
+    
+    # If path changed, close old renderer and create new one
+    if _renderer_cache["path"] != pdf_path:
+        if _renderer_cache["instance"] is not None:
+            try:
+                _renderer_cache["instance"].close()
+                logger.info(f"Closed old renderer for: {_renderer_cache['path']}")
+            except Exception as e:
+                logger.warning(f"Error closing old renderer: {e}")
+        
+        _renderer_cache["instance"] = PDFRenderer(pdf_path)
+        _renderer_cache["path"] = pdf_path
+        logger.info(f"Created new renderer for: {pdf_path}")
+    
+    return _renderer_cache["instance"]
 
 def generate_pdf_figure(current_page, renderer, highlight_bbox=None):
     """

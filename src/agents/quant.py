@@ -42,9 +42,36 @@ JSON SCHEMA:
     def extract_metrics(self, markdown_content: str, target_metrics: List[str] = None, feedback: str = None) -> Dict[str, Any]:
         """
         Extracts specific metrics from the Markdown content.
+        
+        Uses RAG (Retrieval-Augmented Generation) to select only relevant
+        sections instead of dumping the entire 500k character document.
+        
         Supports Feedback Injection for One-Strike Recovery.
         """
-        target_str = ", ".join(target_metrics) if target_metrics else "Key Financial Metrics (Revenue, Net Income, EBITDA, Cash Flow)"
+        # Default metrics if none specified
+        default_metrics = ["Revenue", "Net Income", "EBITDA", "Operating Cash Flow", "EPS"]
+        metrics_list = target_metrics if target_metrics else default_metrics
+        target_str = ", ".join(metrics_list)
+        
+        # ======================================
+        # RAG: RETRIEVE RELEVANT CONTEXT
+        # ======================================
+        # Instead of passing 500k chars, retrieve only relevant sections
+        try:
+            from src.utils.rag import get_context_for_metrics
+            relevant_context = get_context_for_metrics(
+                metrics=metrics_list,
+                markdown=markdown_content,
+                max_chars=25000  # ~25k chars vs 500k = 95% reduction
+            )
+            logger.info(f"RAG retrieved {len(relevant_context)} chars (reduced from {len(markdown_content)})")
+        except ImportError:
+            # Fallback if RAG dependencies not installed
+            logger.warning("RAG not available, using truncated context")
+            relevant_context = markdown_content[:50000]
+        except Exception as e:
+            logger.warning(f"RAG failed: {e}, using fallback")
+            relevant_context = markdown_content[:50000]
         
         feedback_prompt = ""
         if feedback:
@@ -60,11 +87,11 @@ TASK: Extract the following metrics: {target_str}.
 
 {feedback_prompt}
 
-DOCUMENT CONTEXT (Markdown):
+DOCUMENT CONTEXT (Retrieved Sections):
 \"\"\"
-{markdown_content[:500000]} 
+{relevant_context}
 \"\"\"
-(Note: Content limit increased for full 10-K context.)
+(Note: These are the most relevant sections for your task, retrieved via semantic search.)
 
 INSTRUCTIONS:
 - Find the most recent annual data (Current Year).

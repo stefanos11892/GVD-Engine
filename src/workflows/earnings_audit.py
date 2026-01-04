@@ -48,72 +48,93 @@ class EarningsAuditOrchestrator:
         metrics = quant_result.get("metrics", [])
         verified_metrics = []
         
-        # 3. VERIFICATION & RECOVERY LOOP
-        for metric in metrics:
+        # 3. VERIFICATION - PARALLEL FIRST PASS
+        # =====================================
+        # Performance Optimization: Run all initial verifications concurrently.
+        # This reduces O(N) latency to O(1) for the first pass.
+        logger.info(f"Running parallel verification on {len(metrics)} metrics...")
+        
+        async def verify_with_index(idx: int, metric: Dict[str, Any]):
+            """Wrapper to preserve metric index for result mapping."""
+            result = await self.verify_single_metric(metric, pdf_path)
+            return idx, metric, result
+        
+        # Launch all verifications concurrently
+        verification_tasks = [verify_with_index(i, m) for i, m in enumerate(metrics)]
+        first_pass_results = await asyncio.gather(*verification_tasks)
+        
+        logger.info("Parallel verification complete. Processing results...")
+        
+        # 4. RECOVERY PHASE (Sequential - depends on first pass results)
+        # ===============================================================
+        verified_metrics = []
+        failed_metrics = []
+        
+        for idx, metric, audit_result in first_pass_results:
             metric_id = metric.get('metric_id')
-            logger.info(f"Verifying: {metric_id} ({metric.get('value_raw')})")
-            
-            # --- ATTEMPT 1 ---
-            audit_result = await self.verify_single_metric(metric, pdf_path)
             
             if audit_result["status"] == "error_detected":
-                logger.warning(f"Detection! {audit_result.get('note')}")
-                
-                # --- RECOVERY (ATTEMPT 2) ---
-                logger.info(f"Attempting One-Strike Recovery for {metric_id}...")
-                feedback = f"Error in {metric_id}: {audit_result.get('note')}. {audit_result.get('details')}"
-                
-                # Re-query Quant with Feedback
-                retry_output = self.quant.extract_metrics(markdown, target_metrics=[metric_id], feedback=feedback)
-                
-                # Extract corrected metric from response
-                corrected_metrics = retry_output.get("metrics", [])
-                corrected_metric = next((m for m in corrected_metrics if m.get("metric_id") == metric_id), None)
-                
-                if corrected_metric:
-                    logger.info(f"Quant provided correction: {corrected_metric.get('value_raw')}")
-                    # Re-Verify
-                    audit_result_2 = await self.verify_single_metric(corrected_metric, pdf_path)
-                    
-                    if audit_result_2["status"] == "verified":
-                         logger.info(f"Recovery Successful for {metric_id}")
-                         corrected_metric["verification"] = audit_result_2
-                         corrected_metric["recovery_used"] = True
-                         
-                         # CHAIN OF FAILURE (Institutional Grade Transparency)
-                         # We record the original sin so analysts know the risk.
-                         corrected_metric["audit_history"] = [
-                             {
-                                 "attempt": 1,
-                                 "value_raw": metric.get("value_raw"),
-                                 "verification": audit_result,
-                                 "timestamp": datetime.now().isoformat()
-                             }
-                         ]
-                         
-                         verified_metrics.append(corrected_metric)
-                         self.log_history.append({"metric_id": metric_id, "status": "Recovered", "details": feedback})
-                    else:
-                         # FINAL FAIL
-                         logger.error(f"Recovery Failed for {metric_id}. Escalating to Human Review.")
-                         metric["verification"] = audit_result_2
-                         metric["flagged"] = True
-                         metric["intervention_required"] = True
-                         metric["failure_chain"] = [audit_result, audit_result_2]
-                         self.log_history.append({"metric_id": metric_id, "status": "Failed", "chain":metric["failure_chain"]})
-                         verified_metrics.append(metric) # Append broken metric for review
-                else:
-                    logger.error(f"Quant failed to provide correction for {metric_id}.")
-                    metric["verification"] = audit_result
-                    metric["flagged"] = True
-                    verified_metrics.append(metric)
-
+                # Queue for recovery
+                failed_metrics.append((metric, audit_result))
             else:
-                # Pass
+                # Pass - mark as verified
                 metric["verification"] = audit_result
                 metric["flagged"] = False
                 verified_metrics.append(metric)
                 self.log_history.append({"metric_id": metric_id, "status": "Verified"})
+        
+        # Handle recovery sequentially (must re-query Quant per failure)
+        for metric, audit_result in failed_metrics:
+            metric_id = metric.get('metric_id')
+            logger.warning(f"Detection! {audit_result.get('note')}")
+            
+            # --- RECOVERY (ATTEMPT 2) ---
+            logger.info(f"Attempting One-Strike Recovery for {metric_id}...")
+            feedback = f"Error in {metric_id}: {audit_result.get('note')}. {audit_result.get('details')}"
+            
+            # Re-query Quant with Feedback
+            retry_output = self.quant.extract_metrics(markdown, target_metrics=[metric_id], feedback=feedback)
+            
+            # Extract corrected metric from response
+            corrected_metrics_list = retry_output.get("metrics", [])
+            corrected_metric = next((m for m in corrected_metrics_list if m.get("metric_id") == metric_id), None)
+            
+            if corrected_metric:
+                logger.info(f"Quant provided correction: {corrected_metric.get('value_raw')}")
+                # Re-Verify
+                audit_result_2 = await self.verify_single_metric(corrected_metric, pdf_path)
+                
+                if audit_result_2["status"] == "verified":
+                     logger.info(f"Recovery Successful for {metric_id}")
+                     corrected_metric["verification"] = audit_result_2
+                     corrected_metric["recovery_used"] = True
+                     
+                     # CHAIN OF FAILURE (Institutional Grade Transparency)
+                     corrected_metric["audit_history"] = [
+                         {
+                             "attempt": 1,
+                             "value_raw": metric.get("value_raw"),
+                             "verification": audit_result,
+                             "timestamp": datetime.now().isoformat()
+                         }
+                     ]
+                     
+                     verified_metrics.append(corrected_metric)
+                     self.log_history.append({"metric_id": metric_id, "status": "Recovered", "details": feedback})
+                else:
+                     # FINAL FAIL
+                     logger.error(f"Recovery Failed for {metric_id}. Escalating to Human Review.")
+                     metric["verification"] = audit_result_2
+                     metric["flagged"] = True
+                     metric["intervention_required"] = True
+                     metric["failure_chain"] = [audit_result, audit_result_2]
+                     self.log_history.append({"metric_id": metric_id, "status": "Failed", "chain": metric["failure_chain"]})
+                     verified_metrics.append(metric)
+            else:
+                logger.error(f"Quant failed to provide correction for {metric_id}.")
+                metric["verification"] = audit_result
+                metric["flagged"] = True
+                verified_metrics.append(metric)
 
         # 4. QUALITATIVE ANALYSIS (The Anthropologist)
         logger.info("Asking Qual Agent to analyze sentiment...")

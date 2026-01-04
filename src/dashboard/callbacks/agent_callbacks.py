@@ -22,21 +22,8 @@ import logging
 
 logger = logging.getLogger("AgentCallbacks")
 
-def safe_json_parse(raw_str: str) -> dict:
-    """Safely extract and parse JSON from LLM response strings."""
-    if not raw_str:
-        return {}
-    try:
-        # Remove markdown code fences
-        clean = raw_str.replace("```json", "").replace("```", "").strip()
-        # Regex to find outermost JSON object
-        match = re.search(r'\{[\s\S]*\}', clean)
-        if match:
-            return json.loads(match.group(0))
-        return {}
-    except Exception as e:
-        logger.warning(f"JSON parse failed: {e}")
-        return {}
+# Import pure logic functions from decoupled module
+from src.logic.json_utils import safe_json_parse
 
 def render_rich_workflow_ui(data):
     """Parses agent JSONs and constructs a dashboard-like view."""
