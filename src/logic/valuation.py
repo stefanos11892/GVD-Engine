@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 from src.logic.guards import valuation_guard
 from src.config import (
     TERMINAL_GROWTH_RATE, DEFAULT_DISCOUNT_RATE, GORDON_GUARD_BUFFER,
@@ -82,6 +83,10 @@ class ValuationEngine:
             # Gordon Guardrail: g <= r - 1.5%
             eff_term_g = min(term_growth, r_try - GORDON_GUARD_BUFFER)
             
+            # Safety: Ensure denominator is never zero or negative
+            if r_try <= eff_term_g:
+                eff_term_g = r_try - 0.01  # Force minimum 1% spread
+            
             pv_sum = 0
             for i, eps_val in enumerate(stream_eps):
                 t = i + 1
@@ -118,7 +123,8 @@ class ValuationEngine:
                 r_implied = (low + high) / 2
         
         # --- 3. Projection Loop (Years 1-5) ---
-        proj_years = [2024]
+        current_year = datetime.now().year
+        proj_years = [current_year]
         proj_prices = [current_price]
         table_data = [] # Structured data for UI to render
         
@@ -169,11 +175,11 @@ class ValuationEngine:
                 used_pe = (eff_start_pe * weight_current) + (target_pe * weight_target)
                 future_implied_price = future_eps * used_pe
 
-            proj_years.append(2024 + year)
+            proj_years.append(current_year + year)
             proj_prices.append(future_implied_price)
             
             table_data.append({
-                "year": 2024 + year,
+                "year": current_year + year,
                 "revenue": future_rev,
                 "growth_pct": growth,
                 "net_income": future_net,

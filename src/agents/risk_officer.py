@@ -66,4 +66,26 @@ You must respond in **STRICT JSON** format. Do not add markdown around the JSON.
             data = get_market_data(ticker)
             context = f"{context}\n\n[RISK DATA]\nBeta: {data.get('beta', 'N/A')}\nVolatility: {data.get('volatility', 'N/A')}\nEst Debt: ${data.get('debt', 'N/A')}"
             
-        return super().run(user_input, context)
+        response = super().run(user_input, context)
+        
+        # Robust JSON Parsing
+        try:
+            import json
+            import re
+            
+            # Extract JSON block
+            if "```json" in response:
+                clean_json = response.split("```json")[1].split("```")[0].strip()
+            elif "{" in response and "}" in response:
+                clean_json = response[response.find("{"):response.rfind("}")+1]
+            else:
+                clean_json = response
+            
+            # Clean comments like // 
+            clean_json = re.sub(r"//.*", "", clean_json)
+                
+            return json.loads(clean_json)
+        except Exception as e:
+            print(f"DEBUG: Risk Parsing Failed: {e}")
+            # Fallback - return raw string but wrapped so it doesn't break dict access
+            return {"error": "JSON Parse Error", "raw_response": response, "risk_rating": "HIGH"} # Fail Safe

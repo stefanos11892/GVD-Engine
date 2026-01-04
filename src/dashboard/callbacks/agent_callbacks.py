@@ -17,18 +17,53 @@ from src.workflows.fundamental_chain import run_fundamental_chain
 from src.workflows.forecasting_chain import run_forecasting_chain
 
 import json
+import re
+import logging
+
+logger = logging.getLogger("AgentCallbacks")
+
+def safe_json_parse(raw_str: str) -> dict:
+    """Safely extract and parse JSON from LLM response strings."""
+    if not raw_str:
+        return {}
+    try:
+        # Remove markdown code fences
+        clean = raw_str.replace("```json", "").replace("```", "").strip()
+        # Regex to find outermost JSON object
+        match = re.search(r'\{[\s\S]*\}', clean)
+        if match:
+            return json.loads(match.group(0))
+        return {}
+    except Exception as e:
+        logger.warning(f"JSON parse failed: {e}")
+        return {}
 
 def render_rich_workflow_ui(data):
     """Parses agent JSONs and constructs a dashboard-like view."""
     try:
-        # Extract & Parse
-        analyst_data = json.loads(data.get("analyst", "{}").replace("```json", "").replace("```", "").strip())
-        risk_data = json.loads(data.get("risk", "{}").replace("```json", "").replace("```", "").strip())
-        arch_data = json.loads(data.get("architect", "{}").replace("```json", "").replace("```", "").strip())
+        # Extract & Parse with robust helper
+        analyst_data = safe_json_parse(data.get("analyst", "{}"))
+        risk_data = safe_json_parse(data.get("risk", "{}"))
+        arch_data = safe_json_parse(data.get("architect", "{}"))
         
         # 1. Header (Architect Verdict)
         verdict = arch_data.get("decision", "HOLD")
-        ticker = arch_data.get("ticker", "???")
+        
+        # Extract ticker - Try multiple sources
+        ticker = arch_data.get("ticker", "")
+        
+        # Fallback 1: Extract from originator text (bold markdown pattern: **TICKER**)
+        if not ticker or ticker == "???":
+            import re
+            raw_narrative = data.get("originator", "")
+            # Match patterns like "**BRK.B**" or "**NVDA**"
+            ticker_match = re.search(r'\*\*([A-Z]{1,5}(?:\.[A-Z])?)\*\*', raw_narrative)
+            if ticker_match:
+                ticker = ticker_match.group(1)
+        
+        # Fallback 2: Look in analyst_data
+        if not ticker or ticker == "???":
+            ticker = analyst_data.get("ticker", "???")
         
         # Verdict Logic: Dot Badge
         dot_color = "dot-green" if verdict in ["BUY"] else "dot-red" if verdict in ["SELL", "KILL"] else "dot-amber"
@@ -69,7 +104,7 @@ def render_rich_workflow_ui(data):
         
         deal_data = {
             "ticker": ticker,
-            "market_cap": "Checking...",
+            "market_cap": "N/A",
             "pe": "N/A",
             "thesis": "" # Prevent duplication. Main narrative is at the top.
         }
@@ -82,9 +117,9 @@ def render_rich_workflow_ui(data):
              if "pe_ratio" in analyst_data: deal_data["pe"] = str(analyst_data.get("pe_ratio"))
         
         # Fallback: Scrape Originator Table if metrics missing
-        if deal_data["market_cap"] == "Checking...":
+        if deal_data["market_cap"] == "N/A" and ticker != "???":
             try:
-                table_match = re.search(fr'\|\s*\**{ticker}\**\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|', raw_narrative, re.IGNORECASE)
+                table_match = re.search(fr'\|\s*\**{re.escape(ticker)}\**\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|', raw_narrative, re.IGNORECASE)
                 if table_match:
                     deal_data["market_cap"] = table_match.group(1).strip()
                     deal_data["pe"] = table_match.group(2).strip()
@@ -92,26 +127,18 @@ def render_rich_workflow_ui(data):
                 pass
                 
         # --- VALIDATION LAYER ---
-        # If PE is missing or arguably hallucinated (e.g. > 200 for non-tech, or equals price), fetch real data.
-        # Simple check: If PE is "N/A" or likely wrong, fetch.
+        # Fetch real market data ONLY if we have a valid ticker
         from src.tools.market_data import get_market_data
         
-        should_fetch = False
-        if deal_data["pe"] in ["N/A", "Checking..."]:
-            should_fetch = True
-        else:
-            # Check for hallucination (Price ~= PE)
-            # This is hard without knowing price.
-            pass
-            
-        # For now, let's just fetch if we want high accuracy (User complained about data quality)
-        # We fetch if we don't have a solid number.
-        if should_fetch or deal_data["pe"] == deal_data["ticker"]: # Basic nonsense check
-             real_data = get_market_data(ticker)
-             if real_data.get("pe"):
-                 deal_data["pe"] = f"{real_data['pe']:.2f}"
-             if real_data.get("market_cap"):
-                 deal_data["market_cap"] = real_data["market_cap"]
+        if ticker and ticker != "???" and len(ticker) <= 5:
+            try:
+                real_data = get_market_data(ticker)
+                if real_data.get("pe"):
+                    deal_data["pe"] = f"{real_data['pe']:.2f}"
+                if real_data.get("market_cap"):
+                    deal_data["market_cap"] = real_data["market_cap"]
+            except Exception as e:
+                logger.warning(f"Market data fetch failed for {ticker}: {e}")
 
         # The 'narrative' argument in v0 component matches 'originator' text
         # The 'deal_memo' argument matches the struct above

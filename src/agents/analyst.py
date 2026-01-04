@@ -112,8 +112,14 @@ Response must be in **STRICT JSON**.
                 # PE: Use Current PE if reasonable, bounded [10x, 35x]
                 
                 cur_pe = float(market_data.get("pe", 0) or 0)
-                cur_price = float(market_data.get("price", 0))
-                cur_eps = float(market_data.get("eps", 0))
+                cur_price = float(market_data.get("price", 0) or 0)
+                
+                # Robust EPS parsing - handle string values like "2.50" or "-1.20"
+                raw_eps = market_data.get("eps", 0)
+                try:
+                    cur_eps = float(str(raw_eps).replace(",", "")) if raw_eps else 0.0
+                except (ValueError, TypeError):
+                    cur_eps = 0.0
                 
                 # Heuristic: If High Quality (High ROIC implied), use higher multiple
                 assumed_pe = 20.0 
@@ -170,9 +176,6 @@ Response must be in **STRICT JSON**.
                     context += f"Do NOT hallucinate a different range based on training data. Rely on this live calculation."
                     
                     self.log_debug(f"Math Anchor Calculated: ${math_target_price:.2f} (Range: {range_low}-{range_high})")
-                    
-            except Exception as e:
-                print(f"DEBUG: Valuation Integration Failed: {e}")
                     
             except Exception as e:
                 print(f"DEBUG: Valuation Integration Failed: {e}")

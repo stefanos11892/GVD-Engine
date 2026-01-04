@@ -9,6 +9,8 @@ from src.parsers.financial_pdf import FinancialPDFParser
 from src.agents.quant import QuantAgent
 from src.agents.auditor import AuditorAgent
 from src.agents.auditor_logic import CoordinateVerifier
+from src.agents.qual import QualAgent
+from src.agents.consolidator import ConsolidatorAgent
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +20,8 @@ class EarningsAuditOrchestrator:
     def __init__(self):
         self.parser = FinancialPDFParser()
         self.quant = QuantAgent()
+        self.qual = QualAgent()
+        self.consolidator = ConsolidatorAgent()
         self.auditor = AuditorAgent()
         self.coord_verifier = CoordinateVerifier()
         self.log_history = []
@@ -111,12 +115,32 @@ class EarningsAuditOrchestrator:
                 verified_metrics.append(metric)
                 self.log_history.append({"metric_id": metric_id, "status": "Verified"})
 
-        # 4. FINALIZE
+        # 4. QUALITATIVE ANALYSIS (The Anthropologist)
+        logger.info("Asking Qual Agent to analyze sentiment...")
+        qual_result = self.qual.analyze_sentiment(markdown)
+        
+        # 5. THESIS CONSOLIDATION (The Portfolio Manager)
+        logger.info("Synthesizing Institutional Thesis...")
+        
+        # Prepare data for Consolidator
+        quant_summary = {m['metric_id']: m.get('value_raw') for m in verified_metrics}
+        
+        thesis_result = self.consolidator.synthesize_report(
+            quant_data=quant_summary,
+            qual_data=qual_result,
+            delta_data={"notes": "No historical delta available yet."} 
+        )
+
+        # 6. FINALIZE
         final_report = {
             "run_id": run_id,
             "timestamp": datetime.now().isoformat(),
             "pdf_path": pdf_path,
-            "metrics": verified_metrics
+            "metrics": verified_metrics,
+            "qual_analysis": qual_result,
+            "institutional_thesis": thesis_result,
+            "quant_note": quant_result.get("note"),
+            "quant_error": quant_result.get("error")
         }
         
         # 5. AUDIT LOGGING

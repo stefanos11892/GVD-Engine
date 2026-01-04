@@ -1,7 +1,13 @@
+[tool.pyrefly]
+# Configuration to reduce memory usage by excluding common heavy directories
+project-excludes = [
+    ".*"
+]
+
 [tool.pyright]
+# Nuclear option for RAM:
 include = ["src", "tests", "main.py"]
 exclude = ["**/node_modules", "**/__pycache__", "**/site-packages", ".venv", "venv"]
-# Nuclear option for RAM:
 typeCheckingMode = "off"
 reportMissingImports = false
 reportMissingTypeStubs = false

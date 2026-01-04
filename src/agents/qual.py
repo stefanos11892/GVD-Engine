@@ -55,9 +55,11 @@ INSTRUCTIONS:
         response = self.run(prompt)
         
         try:
-             # Basic JSON Extraction
-            if "{" in response and "}" in response:
-                json_str = response[response.find("{"):response.rfind("}")+1]
+             # Robust JSON Extraction (Regex-based)
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                json_str = json_match.group(0)
                 data = json.loads(json_str)
                 return data
             else:

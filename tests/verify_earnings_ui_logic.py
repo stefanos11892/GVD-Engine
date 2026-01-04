@@ -37,7 +37,7 @@ def verify_ui_logic():
     print(f"[PASS] PDF Loaded. Total Pages: {count}")
     
     print(">>> 2. TESTING PAGE RENDER (IMAGE)...")
-    img_str, w, h = renderer.get_page_image(1) # Page 1
+    img_str, w, h, scale = renderer.get_page_image(1) # Page 1
     if img_str.startswith("data:image/png;base64,"):
          print(f"[PASS] Page 1 Rendered to Base64 (Size: {w}x{h}).")
          # Check content length roughly

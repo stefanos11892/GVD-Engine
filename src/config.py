@@ -21,4 +21,4 @@ MC_DRIFT_CAP_MULTIPLIER = 50.0 # Max 50x drift
 DEFAULT_PRICE = 100.0
 DEFAULT_REVENUE = 1_000_000_000.0
 DEFAULT_EPS = 1.0
-DEFAULT_SHARES = 1
+DEFAULT_SHARES = 1_000_000  # Fallback: Assume 1M shares to prevent division errors

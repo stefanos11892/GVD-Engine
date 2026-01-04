@@ -1,0 +1,13 @@
+{
+    "exclude": [
+        "**"
+    ],
+    "ignore": [
+        "**"
+    ],
+    "include": [],
+    "pythonPlatform": "Windows",
+    "typeCheckingMode": "off",
+    "useLibraryCodeForTypes": false,
+    "reportMissingImports": false
+}

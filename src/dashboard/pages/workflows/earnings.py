@@ -38,13 +38,40 @@ layout = dbc.Container([
     # Store Data Client-Side
     dcc.Store(id='report-store', data=report_data),
     dcc.Store(id='log-store', data=log_data),
-    dcc.Store(id='pdf-page-store', data={'page': 1}), # Tracks current page
+    dcc.Store(id='pdf-page-store', data={'page': 1}), 
+    dcc.Store(id='current-job-store', data=None), # NEW: Job ID
     
+    dcc.Interval(id='job-poll-interval', interval=2000, n_intervals=0, disabled=True), # Polls when job active
+
     dbc.Row([
-        # --- LEFT PANEL: INVESTMENT MEMO ---
+        # --- LEFT PANEL: INGESTION & THESIS ---
         dbc.Col([
+            # Dropzone
+            dcc.Upload(
+                id='upload-current-10k',
+                children=html.Div([
+                    'Drag and Drop or ',
+                    html.A('Select Current 10-K PDF')
+                ]),
+                style={
+                    'width': '100%',
+                    'height': '60px',
+                    'lineHeight': '60px',
+                    'borderWidth': '1px',
+                    'borderStyle': 'dashed',
+                    'borderRadius': '5px',
+                    'textAlign': 'center',
+                    'borderColor': '#666',
+                    'marginBottom': '10px',
+                    'cursor': 'pointer',
+                    'color': '#AAA'
+                },
+                multiple=False
+            ),
+            html.Div(id="upload-status-msg", className="small text-info mb-2"),
+            
             html.H4("Institutional Thesis", className="mb-3"),
-            html.Div(id='thesis-container', className="p-3 border rounded", style={"height": "80vh", "overflowY": "scroll", "backgroundColor": "#121212", "color": "#FFFFFF", "borderColor": "#333"}),
+            html.Div(id='thesis-container', className="p-3 border rounded", style={"height": "70vh", "overflowY": "scroll", "backgroundColor": "#121212", "color": "#FFFFFF", "borderColor": "#333"}),
         ], width=4),
         
         # --- RIGHT PANEL: PDF CANVAS ---

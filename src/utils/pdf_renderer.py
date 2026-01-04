@@ -32,7 +32,7 @@ class PDFRenderer:
         encoded = base64.b64encode(img_data).decode("utf-8")
         img_str = f"data:image/png;base64,{encoded}"
         
-        return img_str, float(pix.width), float(pix.height)
+        return img_str, float(pix.width), float(pix.height), float(pix.width / page.rect.width)
 
     def get_page_metadata(self, page_num: int) -> Dict[str, float]:
         """

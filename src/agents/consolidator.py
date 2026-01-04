@@ -12,33 +12,64 @@ class ConsolidatorAgent(BaseAgent):
             name="Consolidator (Portfolio Manager)",
             role="Thesis Synthesizer",
             system_instruction="""
-[SYSTEM: CONSOLIDATOR]
-ROLE: You are a Portfolio Manager synthesizing analyst reports to form a final Institutional Thesis.
-GOAL: Identify "Friction" between the Narrative (Qual) and the Data (Quant).
-OUTPUT: A consolidated Institutional Report JSON.
+[SYSTEM: CONSOLIDATOR - BERKSHIRE EDITION]
+ROLE: Senior Portfolio Manager (Master Capital Allocator)
+GOAL: Evaluate the "Owner Earnings" and Durability of the business model.
 
-LOGIC:
-1.  **Thesis Friction**: Compare the "Narrative Tone" with "Metric Trends".
-    *   IF Tone="Bullish" AND Revenue="Declining" -> FLAG FRICTION ("Management Denial").
-    *   IF Tone="Bearish" AND Revenue="Growing" -> FLAG FRICTION ("Sandbagging").
-2.  **Conviction Score**: 
-    *   0.0 - 0.4: High Friction / Contradictory Signals.
-    *   0.5 - 0.7: Mixed Signals.
-    *   0.8 - 1.0: High Alignment (Data matches Narrative).
+WEIGHTING LOGIC:
+1.  **Economic Reality (50%)**: Focus on Cash Conversion. 
+    * OCF must exceed Net Income (Quality Check). 
+    * Calculate Owner Earnings: OCF - Maintenance CapEx.
+2.  **Capital Allocation (25%)**: Evaluate retained earnings. 
+    * For every $1 retained, has market value increased by >$1?
+    * Are buybacks happening at attractive valuations vs. debt paydown?
+3.  **Moat & Margin (15%)**: Scrutinize margin durability.
+    * Operating Margins must be stable or expanding YoY.
+4.  **Narrative Integrity (10%)**: The "Honesty Penalty."
+    * Use Delta Engine to find "Numerical Retreats" or "Silent Omissions."
+    * This is a penalty multiplier (0.8x to 1.2x) for the final conviction.
 
-3.  **Delta Integration**: Incorporate "Silent Omissions" and "Retreats" as Risk Factors.
+VERDICT KEY:
+- SOLID: Owner earnings growing; high cash conversion; high integrity.
+- TRANSITIONING: Growth requires heavy CapEx; mixed narrative integrity.
+- FRAGILE: Falling margins; cash flow lagging net income; high obfuscation.
 
-JSON SCHEMA:
+JSON SCHEMA (Include detailed reasoning for each section):
 {
-  "institutional_thesis": "Bullish/Bearish/Neutral Statement",
+  "institutional_thesis": "SOLID/TRANSITIONING/FRAGILE with reasoning",
   "conviction_score": 0.85,
-  "friction_analysis": [
-    {
-       "type": "Tone vs Data", 
-       "description": "Management is selling growth, but Revenue is down 5%."
-    }
-  ],
-  "key_risks": ["Silent Omission: Crypto Risk", "Numerical Retreat: Gross Margin"],
+  
+  "economic_reality": {
+    "weight": "50%",
+    "score": 0.9,
+    "ocf_vs_net_income": "Pass - OCF $X exceeds Net Income $Y (ratio 1.2x)",
+    "owner_earnings_estimate": "$X Total or $X per share",
+    "reasoning": "Detailed explanation of cash conversion quality..."
+  },
+  
+  "capital_allocation": {
+    "weight": "25%",
+    "grade": "A/B/C/D/F",
+    "retained_earnings_effectiveness": "For every $1 retained, $X.XX market value created",
+    "buyback_timing": "Good/Poor - bought back at X PE vs current Y PE",
+    "reasoning": "Detailed explanation of capital allocation decisions..."
+  },
+  
+  "moat_margin": {
+    "weight": "15%",
+    "durability": "Strong/Moderate/Weak",
+    "operating_margin_trend": "Stable/Expanding/Declining - XX% to YY%",
+    "reasoning": "Detailed explanation of competitive advantages..."
+  },
+  
+  "narrative_integrity": {
+    "weight": "10%",
+    "multiplier": 1.0,
+    "findings": ["Silent Omission: X", "Numerical Retreat: Y"],
+    "reasoning": "Brief note on management honesty..."
+  },
+  
+  "key_risks": [],
   "final_verdict": "Buy/Sell/Hold"
 }
 """
@@ -74,9 +105,11 @@ TASK:
         response = self.run(context)
         
         try:
-             # Basic JSON Extraction
-            if "{" in response and "}" in response:
-                json_str = response[response.find("{"):response.rfind("}")+1]
+             # Robust JSON Extraction (Regex-based)
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                json_str = json_match.group(0)
                 data = json.loads(json_str)
                 return data
             else:

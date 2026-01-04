@@ -29,7 +29,8 @@ class AgentOrchestrator:
         coroutines = [run_agent_task(agent, prompt, context) for agent, prompt, context in tasks]
         
         # Run all coroutines concurrently
-        results = await asyncio.gather(*coroutines)
+        # return_exceptions=True prevents one crash from stopping others
+        results = await asyncio.gather(*coroutines, return_exceptions=True)
         
         # Convert list of tuples to dictionary
         return dict(results)

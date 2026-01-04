@@ -12,9 +12,14 @@ def valuation_guard(func):
         try:
             result = func(*args, **kwargs)
             
-            # Post-check validation (Optional)
-            # if "r_implied" in result and np.isnan(result["r_implied"]):
-            #    raise ValueError("Implied WACC is NaN")
+            # Post-check validation: Catch NaN/Inf in critical outputs
+            if "r_implied" in result:
+                if np.isnan(result["r_implied"]) or np.isinf(result["r_implied"]):
+                    raise ValueError(f"Implied WACC is invalid: {result['r_implied']}")
+            if "proj_prices" in result:
+                for price in result["proj_prices"]:
+                    if np.isnan(price) or np.isinf(price):
+                        raise ValueError(f"Projected price contains invalid value: {price}")
             
             return result
             

@@ -1,6 +1,27 @@
 from src.agents.base_agent import BaseAgent
 
 class ArchitectAgent(BaseAgent):
+    def process_output(self, response_str):
+        """Standardizes output to Dict"""
+        try:
+            import json
+            import re
+            
+            if "```json" in response_str:
+                clean = response_str.split("```json")[1].split("```")[0].strip()
+            elif "{" in response_str:
+                clean = response_str[response_str.find("{"):response_str.rfind("}")+1]
+            else:
+                return {"decision": "PASS", "reasoning": "Output parsing failed", "raw": response_str}
+                
+            return json.loads(clean)
+        except Exception:
+            return {"decision": "PASS", "reasoning": "JSON Exception", "raw": response_str}
+
+    def run(self, user_input, context=None):
+        response = super().run(user_input, context)
+        return self.process_output(response)
+
     def __init__(self):
         super().__init__(
             name="Architect",

@@ -57,9 +57,16 @@ class VisionTool:
                 prompt
             ])
             
-            # Basic parsing of the response text assuming model returns JSON string
-            # In production, use more robust JSON parsing
-            return {"verified": "true" in response.text.lower(), "raw_response": response.text}
+            # Parse JSON from Vision Model
+            lower_text = response.text.lower()
+            verified = False
+            
+            if '"verified": true' in lower_text or '"verified":true' in lower_text:
+                verified = True
+            elif "verified: true" in lower_text:
+                 verified = True
+                 
+            return {"verified": verified, "raw_response": response.text}
             
         except Exception as e:
             logger.error(f"Vision Verification Failed: {e}")

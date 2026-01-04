@@ -33,7 +33,8 @@ JSON SCHEMA:
         "page": 45
       }
     }
-  ]
+  ],
+  "note": "Optional explanation if data is missing or incorporated by reference."
 }
 """
         )
@@ -61,9 +62,9 @@ TASK: Extract the following metrics: {target_str}.
 
 DOCUMENT CONTEXT (Markdown):
 \"\"\"
-{markdown_content[:15000]} 
+{markdown_content[:500000]} 
 \"\"\"
-(Note: Content truncated for token limits. Focus on the financial tables provided.)
+(Note: Content limit increased for full 10-K context.)
 
 INSTRUCTIONS:
 - Find the most recent annual data (Current Year).

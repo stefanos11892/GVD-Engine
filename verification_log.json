@@ -1,40 +1,121 @@
 {
-  "run_id": "20251227_225336",
-  "timestamp": "2025-12-27T22:53:53.223630",
-  "pdf_path": "complex_10k.pdf",
+  "run_id": "20260102_003730",
+  "timestamp": "2026-01-02T00:46:49.647963",
+  "pdf_path": "temp/uploads\\54d539d9_SHOPIFY Form 10-K 2024.pdf",
   "metrics": [
     {
-      "metric_id": "cash_equivalents",
-      "display_name": "Cash and Cash Equivalents",
-      "value_raw": "28,840",
+      "metric_id": "revenue_total_2024",
+      "display_name": "Total Revenue (FY 2024)",
+      "value_raw": "8,880",
       "provenance": {
-        "source_snippet": "Cash and cash equivalents 28,840",
-        "page": 1,
-        "bbox": [
-          31.18,
-          584.54,
-          535.75,
-          707.17
-        ]
+        "source_snippet": "Revenues | Subscription solutions | 2,350 | Merchant solutions | 6,530 | | 8,880",
+        "page": 77
       },
       "verification": {
         "status": "verified",
-        "note": "The claimed value 28,840 for 'Cash and cash equivalents' matches the source text exactly. No scaling or transcription error detected in this micro-extraction. The extraction is technically correct, much to my disappointment.",
+        "note": "The total revenue figure (8,880) is explicitly stated in the source text and correctly derived from the sum of Subscription solutions (2,350) and Merchant solutions (6,530). No numerical mismatch found. This is a robust extraction.",
         "details": "None"
       },
-      "recovery_used": true,
-      "audit_history": [
-        {
-          "attempt": 1,
-          "value_raw": "2,884",
-          "verification": {
-            "status": "error_detected",
-            "note": "A clear, egregious transcription error. The extractor understated Cash and Cash Equivalents by an order of magnitude, claiming 2,884 when the provenance clearly states 28,840. Someone needs to learn how to copy numbers.",
-            "details": "Numerical mismatch. The claimed value (2,884) does not match the source value (28,840). The claimed value appears to have dropped the final zero, resulting in a 10x difference."
-          },
-          "timestamp": "2025-12-27T22:53:53.223630"
-        }
-      ]
+      "flagged": false
+    },
+    {
+      "metric_id": "net_income_2024",
+      "display_name": "Net Income (FY 2024)",
+      "value_raw": "2,019",
+      "provenance": {
+        "source_snippet": "Net income (loss) | 2,019 | 132 | (3,460)",
+        "page": 77
+      },
+      "verification": {
+        "status": "verified",
+        "note": "A perfect, infuriating match. The claim matches the first numerical entry adjacent to 'Net income (loss)' exactly. No scale error or transcription error detected in this specific data point.",
+        "details": "None"
+      },
+      "flagged": false
+    },
+    {
+      "metric_id": "cash_flow_operating_2024",
+      "display_name": "Net Cash Provided by Operating Activities (FY 2024)",
+      "value_raw": "1,616",
+      "provenance": {
+        "source_snippet": "Net cash provided by operating activities | 1,616 | 944 | (136)",
+        "page": 79
+      },
+      "verification": {
+        "status": "verified",
+        "note": "Damn it. The source text snippet provided is identical to the claimed metric (1,616). No mismatch, scale error, or hallucination detected. The extraction is accurate, assuming the first column represents 2024.",
+        "details": "None"
+      },
+      "flagged": false
+    },
+    {
+      "metric_id": "ebitda_calculated_2024",
+      "display_name": "EBITDA (Calculated) (FY 2024)",
+      "value_raw": "1,111",
+      "provenance": {
+        "source_snippet": "Income (loss) from operations | 1,075 (p. 77); Amortization and depreciation | 36 (p. 79)",
+        "page": 77
+      },
+      "verification": {
+        "status": "verified",
+        "note": "The calculation is mathematically correct (1,075 + 36 = 1,111). While I suspect the underlying GAAP classification of 'Income (loss) from operations' might be massaged, based purely on the provided inputs, the derived EBITDA metric is confirmed. Disappointing.",
+        "details": "None"
+      },
+      "flagged": false
     }
-  ]
+  ],
+  "qual_analysis": {
+    "sentiment_score": 0.5,
+    "narrative_tone": "Neutral",
+    "key_themes": [
+      "Regulatory Filing",
+      "Compliance",
+      "Corporate Structure"
+    ],
+    "vagueness_flags": [
+      "Text is purely procedural (10-K cover and index); no management discussion or qualitative statements were present for analysis."
+    ],
+    "management_confidence": "Medium"
+  },
+  "institutional_thesis": {
+    "institutional_thesis": "FRAGILE. The fundamental requirement of high-quality earnings (OCF > Net Income) is severely violated, indicating substantial non-cash earnings components or significant working capital drag. The lack of qualitative context further obscures the cause of this cash shortfall.",
+    "conviction_score": 0.33,
+    "economic_reality": {
+      "weight": "50%",
+      "score": 0.4,
+      "ocf_vs_net_income": "Fail - OCF $1,616M is significantly less than Net Income $2,019M (ratio 0.80x)",
+      "owner_earnings_estimate": "Substantially below $2,019M. Even assuming $0 Maintenance CapEx (highly unlikely), Owner Earnings cannot exceed OCF of $1,616M, which is only 80% of stated Net Income.",
+      "reasoning": "The core cash conversion quality is poor (0.80x). This indicates that $403M of stated net income is currently tied up in working capital or driven by large non-cash adjustments (e.g., stock compensation, deferred taxes) that will not convert to deployable cash flow. This fundamentally undermines the quality of reported earnings."
+    },
+    "capital_allocation": {
+      "weight": "25%",
+      "grade": "C (Unassessable)",
+      "retained_earnings_effectiveness": "N/A - Data missing. However, poor cash conversion limits effective capital allocation options.",
+      "buyback_timing": "N/A - Data missing.",
+      "reasoning": "We cannot evaluate the effectiveness of retained earnings or capital allocation decisions (buybacks vs. debt paydown) due to missing data (CapEx, retained earnings history). Given the weak cash flow generation, the capacity for accretive capital deployment is questionable regardless of historical decisions."
+    },
+    "moat_margin": {
+      "weight": "15%",
+      "durability": "Weak (Unproven)",
+      "operating_margin_trend": "Unassessable (Single year data). EBITDA margin is 12.5% ($1,111M / $8,880M).",
+      "reasoning": "With only a single year of data, we cannot assess the stability or expansion of operating margins, which is critical for determining moat durability. The operational efficiency indicated by EBITDA is low relative to the high reported Net Income, suggesting a complex capital structure or heavy reliance on below-the-line items."
+    },
+    "narrative_integrity": {
+      "weight": "10%",
+      "multiplier": 0.9,
+      "findings": [
+        "Silent Omission: Severe lack of MD&A context, preventing management explanation of the $403M gap between Net Income and OCF.",
+        "Numerical Retreat: N/A (No historical data for comparison)."
+      ],
+      "reasoning": "The provided context is purely procedural, lacking any substantive management discussion. This omission prevents the necessary due diligence required to understand the poor cash conversion ratio, warranting a penalty multiplier for lack of transparency."
+    },
+    "key_risks": [
+      "Cash Quality Risk: The OCF/NI ratio of 0.80x is a major red flag, indicating earnings are not translating into deployable cash.",
+      "Transparency Risk: The lack of narrative context prevents analysis of why cash conversion is failing.",
+      "CapEx Unknown: Maintenance CapEx is required to calculate true Owner Earnings. If M-CapEx is high, the business is consuming capital rapidly."
+    ],
+    "final_verdict": "Sell"
+  },
+  "quant_note": "All values are in US $ millions. EBITDA is calculated as Income from Operations ($1,075M) + Amortization and Depreciation ($36M) = $1,111M. D&A derived from Consolidated Statements of Cash Flows and Notes 10 & 12.",
+  "quant_error": null
 }

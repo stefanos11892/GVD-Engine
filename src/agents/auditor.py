@@ -75,10 +75,20 @@ If it is correct, begrudgingly admit it.
         response = self.run(prompt)
         
         try:
-            if "{" in response and "}" in response:
-                json_str = response[response.find("{"):response.rfind("}")+1]
-                return json.loads(json_str)
+            import re
+            import json
+            
+            # Robust Extraction
+            if "```json" in response:
+                clean = response.split("```json")[1].split("```")[0].strip()
+            elif "{" in response:
+                clean = response[response.find("{"):response.rfind("}")+1]
             else:
-                return {"verification_status": "error", "error_details": "Auditor failed to output JSON"}
+                return {"verification_status": "error", "error_details": "No JSON found in response"}
+            
+            # Remove comments
+            clean = re.sub(r"//.*", "", clean)
+            
+            return json.loads(clean)
         except Exception as e:
             return {"verification_status": "error", "error_details": f"Auditor Parse Error: {str(e)}"}
